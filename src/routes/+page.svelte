@@ -1,46 +1,59 @@
 <script>
+  // Importing the 'writable' function from the 'svelte/store' library
   import { writable } from 'svelte/store';
+
+  // Creating a writable store named 'resultStore' with an initial value of 'null'
   const resultStore = writable(null);
 
+  // Initializing variables to store the expression and track operator clicks
   let expression = '';
   let operatorClicked = false;
 
+  // Function to handle button clicks
   const handleButtonClick = async (value) => {
     if (value === '=') {
+      // If the '=' button is clicked, calculate the result
       await calculateResult();
     } else if (['+', '-', '*', '/'].includes(value)) {
+      // If an operator button is clicked (+, -, *, /)
       if (expression !== '') {
         if (operatorClicked) {
-          // Replace the previous operator with the new one
+          // If an operator was clicked previously, replace the previous operator with the new one
           expression = expression.slice(0, -2) + `${value} `;
         } else {
+          // If no operator was clicked previously, calculate the result and update the expression with the new operator
           const result = await calculateResult();
           expression = `${result} ${value} `;
           operatorClicked = true;
         }
       }
     } else {
+      // If a digit button (0-9) is clicked
       operatorClicked = false;
-      expression += value;
+      expression += value; // Append the digit to the expression
     }
   };
 
-
+  // Function to clear the expression and reset the result store to null
   const clearExpression = () => {
     expression = '';
     resultStore.set(null);
   };
 
+  // Function to remove the last character from the expression
   const removeLastCharacter = () => {
-  if (expression.length > 0) {
-    expression = expression.substring(0, expression.length - 1);
-  }
-};
+    if (expression.length > 0) {
+      expression = expression.substring(0, expression.length - 1);
+    }
+  };
 
+  // Function to calculate the result by sending the expression to the server for evaluation
   const calculateResult = async () => {
     try {
+      // Prepare the expression by adding spaces around the operators for proper parsing
       const spacedExpression = expression.replace(/([\+\-\*\/])/g, ' $1 ');
 
+      // Send a POST request to the server with the spaced expression
       const response = await fetch('http://localhost:5000/server', {
         method: 'POST',
         headers: {
@@ -50,20 +63,24 @@
       });
 
       if (response.ok) {
+        // If the response is successful, extract the result from the JSON and update the result store
         const { result } = await response.json();
         resultStore.set(result);
         return result;
       } else {
+        // If there's an error, extract the error message from the JSON and update the result store
         const { error } = await response.json();
         resultStore.set(error);
         return null;
       }
     } catch (error) {
+      // If an error occurs during communication with the server, update the result store with an error message
       resultStore.set('Error occurred while communicating with the server');
       return null;
     }
   };
 </script>
+
 
 <main>
   <div class="calculator">
